@@ -1,0 +1,43 @@
+{
+  "name": "@libera-chat/donations",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Donations API for Libera Chat",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx watch src/main.ts | pino-pretty",
+    "lint": "eslint . --ignore-path .gitignore",
+    "lint:fix": "npm run lint -- --fix",
+    "typecheck": "tsc --noEmit"
+  },
+  "author": "Libera Chat (https://libera.chat)",
+  "contributors": [
+    "Svante Bengtson <swant@libera.chat>"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jose": "^6.1.0",
+    "pino": "^10.1.0",
+    "pino-http": "^11.0.0",
+    "puppeteer": "^24.27.0",
+    "stripe": "^19.1.0",
+    "undici": "^7.16.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@tsconfig/node24": "^24.0.1",
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.9.2",
+    "eslint": "^9.38.0",
+    "neostandard": "^0.12.2",
+    "pino-pretty": "^13.1.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
