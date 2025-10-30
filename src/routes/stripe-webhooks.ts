@@ -30,7 +30,6 @@ export default [{
 
       switch (event.type) {
         case 'charge.succeeded':
-        case 'charge.updated':
           await handleCharge(event)
           break
         case 'payout.paid':
