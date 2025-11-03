@@ -163,6 +163,45 @@ export async function createPdfAttachment (data: Buffer, fileName?: string) {
   return attachment.Id
 }
 
+interface SpirisVoucherApi {
+  Id: string
+  VoucherDate: string
+  VoucherText: string
+  Rows: SpirisVoucherRowApi[]
+  NumberAndNumberSeries: string
+  NumberSeries: string
+  ImportedVoucherNumber: string
+  Attachments: SpirisAttachmentLinkApi
+  VoucherType: number
+  SourceId: string
+
+  CreatedUtc: string
+  ModifiedUtc: string
+}
+interface SpirisVoucherRowApi {
+  AccountNumber: number
+  AccountDescription: string
+  DebitAmount: number
+  CreditAmount: number
+  TransactionText: string
+  CostCenterItemId1: string
+  CostCenterItemId2: string
+  CostCenterItemId3: string
+  VatCodeId: string
+  VatCodeAndPercent: string
+  VatAmount: number
+  Quantity: number
+  Weight: number
+  DeliveryDate: string
+  HarvestYear: number
+  ProjectId: string
+}
+interface SpirisAttachmentLinkApi {
+  DocumentId: string
+  DocumentType: number
+  AttachmentIds: string[]
+}
+
 interface VoucherBaseData {
   date: Date
   description: string
@@ -173,7 +212,7 @@ interface VoucherRowData {
   type: 'debit' | 'credit'
   projectId?: string
 }
-export async function createVoucher (voucherData: VoucherBaseData, voucherRows: VoucherRowData[], attachmentIds: string[]) {
+export async function createVoucher (voucherData: VoucherBaseData, voucherRows: VoucherRowData[], attachmentIds: string[]): Promise<SpirisVoucherApi> {
   const res = await request(new URL('v2/vouchers', SPIRIS_API_BASE_URI), {
     method: 'POST',
     headers: { authorization: `Bearer ${await getAccessToken()}`, 'content-type': 'application/json', accept: 'application/json' },
@@ -201,10 +240,10 @@ export async function createVoucher (voucherData: VoucherBaseData, voucherRows: 
       },
     })
   }
-  return await res.body.json()
+  return await res.body.json() as SpirisVoucherApi
 }
 
-export async function findProjectIdByNumber (projectNumber: number) {
+export async function findProjectIdByNumber (projectNumber: string) {
   const res = await request(new URL('v2/projects', SPIRIS_API_BASE_URI), {
     method: 'GET',
     headers: { authorization: `Bearer ${await getAccessToken()}`, accept: 'application/json' },
@@ -223,7 +262,7 @@ export async function findProjectIdByNumber (projectNumber: number) {
   // TODO: Handle pagination
 
   const body = await res.body.json() as {
-    Data: { Id: string, Number: number, Name: string }[],
+    Data: { Id: string, Number: string | number, Name: string }[],
     Meta: {
       CurrentPage: number,
       PageSize: number,
@@ -232,5 +271,8 @@ export async function findProjectIdByNumber (projectNumber: number) {
       ServerTimeUtc: string
     },
   }
-  return body.Data.find(project => project.Number === projectNumber)?.Id
+  logger.info({ body }, 'Projects found')
+  const projectId = body.Data.find(project => `${project.Number}` === projectNumber)?.Id
+  if (projectId == null) logger.warn({ projectNumber }, 'Project not found')
+  return projectId
 }

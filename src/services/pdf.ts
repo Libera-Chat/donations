@@ -1,6 +1,7 @@
 import puppeteer, { type Browser } from 'puppeteer'
 import { logger } from '../logger.js'
 import { UpstreamError } from '../errors.js'
+import { tracer } from '../instrumentation.js'
 
 let browserInstance: Browser | null = null
 
@@ -43,47 +44,49 @@ async function getBrowser (): Promise<Browser> {
  * @throws {UpstreamError} If the page cannot be loaded or PDF generation fails
  */
 export async function htmlReceiptToPdf (receiptUrl: string): Promise<Buffer> {
-  const browser = await getBrowser()
-  let page = null
+  return await tracer.startActiveSpan('app.htmlReceiptToPdf', async () => {
+    const browser = await getBrowser()
+    let page = null
 
-  try {
-    page = await browser.newPage()
+    try {
+      page = await browser.newPage()
 
-    // Set reasonable viewport for PDF generation
-    await page.setViewport({ width: 1200, height: 800 })
+      // Set reasonable viewport for PDF generation
+      await page.setViewport({ width: 1200, height: 800 })
 
-    // Navigate to the receipt URL with a timeout
-    logger.debug({ receiptUrl }, 'Navigating to receipt URL')
-    await page.goto(receiptUrl, {
-      waitUntil: 'networkidle2',
-      timeout: 30000,
-    })
+      // Navigate to the receipt URL with a timeout
+      logger.debug({ receiptUrl }, 'Navigating to receipt URL')
+      await page.goto(receiptUrl, {
+        waitUntil: 'networkidle2',
+        timeout: 30000,
+      })
 
-    // Generate PDF with optimized settings for receipts
-    logger.debug('Generating PDF from receipt page')
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '0.5in',
-        right: '0.5in',
-        bottom: '0.5in',
-        left: '0.5in',
-      },
-      preferCSSPageSize: false,
-    })
+      // Generate PDF with optimized settings for receipts
+      logger.debug('Generating PDF from receipt page')
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '10mm',
+          right: '10mm',
+          bottom: '10mm',
+          left: '10mm',
+        },
+        preferCSSPageSize: false,
+      })
 
-    logger.debug({ size: pdfBuffer.length }, 'PDF generated successfully')
-    return Buffer.from(pdfBuffer)
-  } catch (error) {
-    logger.error({ error, receiptUrl }, 'Failed to generate PDF from receipt')
-    throw new UpstreamError('Failed to generate PDF from receipt page', {
-      cause: error,
-      privateCtx: { receiptUrl },
-    })
-  } finally {
-    if (page != null) {
-      await page.close()
+      logger.debug({ size: pdfBuffer.length }, 'PDF generated successfully')
+      return Buffer.from(pdfBuffer)
+    } catch (error) {
+      logger.error({ error, receiptUrl }, 'Failed to generate PDF from receipt')
+      throw new UpstreamError('Failed to generate PDF from receipt page', {
+        cause: error,
+        privateCtx: { receiptUrl },
+      })
+    } finally {
+      if (page != null) {
+        await page.close()
+      }
     }
-  }
+  })
 }

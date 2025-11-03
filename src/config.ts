@@ -14,7 +14,7 @@ const envSchema = z.object({
   SPIRIS_CLIENT_ID: z.string(),
   SPIRIS_CLIENT_SECRET: z.string(),
   SPIRIS_DEV_REDIRECT_URI: z.string().optional(),
-  SPIRIS_LIBERAPAY_PROJECT_NUMBER: z.coerce.number().default(1),
+  SPIRIS_LIBERAPAY_PROJECT_NUMBER: z.string().default('1'),
 })
 const env = envSchema.parse(process.env)
 

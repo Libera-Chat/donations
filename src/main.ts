@@ -1,6 +1,8 @@
+import './instrumentation.js'
+
 import 'dotenv/config'
 import express, { type RequestHandler, type ErrorRequestHandler } from 'express'
-import { httpLogger, logger } from './logger.js'
+import { enterLogCtx, httpLogger, logger } from './logger.js'
 import { PORT } from './config.js'
 import { BaseError, NotFoundError, UnexpectedError } from './errors.js'
 
@@ -21,6 +23,8 @@ const routes: RouteDefinition[] = [
 
 const app = express()
 app.disable('x-powered-by')
+
+app.use(enterLogCtx)
 app.use(httpLogger)
 
 for (const route of routes) {
