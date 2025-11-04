@@ -1,7 +1,7 @@
 import express from 'express'
 import Stripe from 'stripe'
 import { stripe } from '../services/stripe.js'
-import { SPIRIS_LIBERAPAY_PROJECT_NUMBER, STRIPE_WEBHOOK_SECRET } from '../config.js'
+import { SPIRIS_LIBERAPAY_PROJECT_NUMBER, SPIRIS_STRIPE_ONETIME_PROJECT_NUMBER, SPIRIS_STRIPE_RECURRING_PROJECT_NUMBER, STRIPE_WEBHOOK_SECRET } from '../config.js'
 import { ValidationError } from '../errors.js'
 import { logger, setAttribute } from '../logger.js'
 import type { RouteDefinition } from '../main.js'
@@ -58,8 +58,8 @@ async function handleCharge (event: Stripe.ChargeSucceededEvent | Stripe.ChargeU
     addMessagingAttributes(event)
     logger.info({ event }, 'Event payload')
 
-    if (!('liberapay_transfer_id' in event.data.object.metadata)) {
-      logger.warn('Charge does not come from Liberapay')
+    if (!('liberapay_transfer_id' in event.data.object.metadata) && !('liberachat_donation_type' in event.data.object.metadata)) {
+      logger.warn('Charge does not come from Liberapay or internal Stripe checkout')
       return
     }
     if ('spiris_voucher_id' in event.data.object.metadata) {
@@ -82,7 +82,7 @@ async function handleCharge (event: Stripe.ChargeSucceededEvent | Stripe.ChargeU
       : event.data.object.balance_transaction
 
     if (transaction.currency !== 'sek') {
-      logger.warn('Transaction is not in SEK')
+      logger.warn('Balance transaction is not in SEK')
       return
     }
 
@@ -92,6 +92,17 @@ async function handleCharge (event: Stripe.ChargeSucceededEvent | Stripe.ChargeU
       logger.info({ pdfSize: pdfBuffer.length }, 'Receipt PDF generated successfully')
 
       attachmentId = await createPdfAttachment(pdfBuffer, `stripe-${event.data.object.receipt_number}.pdf`)
+    }
+
+    let projectId: string | undefined
+    if ('liberachat_donation_type' in event.data.object.metadata) {
+      if (event.data.object.metadata.liberachat_donation_type === 'one-time') {
+        projectId = await findProjectIdByNumber(SPIRIS_STRIPE_ONETIME_PROJECT_NUMBER)
+      } else if (event.data.object.metadata.liberachat_donation_type === 'recurring') {
+        projectId = await findProjectIdByNumber(SPIRIS_STRIPE_RECURRING_PROJECT_NUMBER)
+      }
+    } else if ('liberapay_transfer_id' in event.data.object.metadata) {
+      projectId = await findProjectIdByNumber(SPIRIS_LIBERAPAY_PROJECT_NUMBER)
     }
 
     const voucher = await createVoucher(
@@ -104,7 +115,7 @@ async function handleCharge (event: Stripe.ChargeSucceededEvent | Stripe.ChargeU
           account: 3993,
           amount: transaction.amount / 100,
           type: 'credit',
-          projectId: await findProjectIdByNumber(SPIRIS_LIBERAPAY_PROJECT_NUMBER),
+          projectId,
         },
         ...(transaction.fee > 0
           ? [{

@@ -8,6 +8,7 @@ import { BaseError, NotFoundError, UnexpectedError } from './errors.js'
 
 import stripeWebhooksRoutes from './routes/stripe-webhooks.js'
 import spirisAuthRoutes from './routes/spiris-auth.js'
+import liberaDonateRoutes from './routes/libera-forms.js'
 
 export interface RouteDefinition {
   method: 'all' | 'get' | 'post' | 'put' | 'delete' | 'patch' | 'options' | 'head'
@@ -19,6 +20,7 @@ export interface RouteDefinition {
 const routes: RouteDefinition[] = [
   ...stripeWebhooksRoutes,
   ...spirisAuthRoutes,
+  ...liberaDonateRoutes,
 ]
 
 const app = express()
