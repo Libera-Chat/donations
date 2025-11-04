@@ -42,7 +42,7 @@ export default [{
               tax_code: 'txcd_90000001', // Cash Donation
             },
             unit_amount: body.amount,
-            ...(body.type === 'recurring' ? { recurring: { interval: 'day' } } : {}),
+            ...(body.type === 'recurring' ? { recurring: { interval: 'month' } } : {}),
             tax_behavior: 'inclusive',
           },
           quantity: 1,
