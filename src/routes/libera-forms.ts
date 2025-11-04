@@ -71,7 +71,7 @@ export default [{
             }),
         metadata,
         success_url: new URL('contributing/donate-success', LIBERA_CHAT_WEBSITE_URI).href,
-        cancel_url: new URL('libera/error', `https://${req.get('host')}`).href,
+        cancel_url: new URL('contributing/donate', LIBERA_CHAT_WEBSITE_URI).href,
         origin_context: 'web',
         submit_type: 'donate',
       })

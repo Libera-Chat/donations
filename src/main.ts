@@ -6,6 +6,7 @@ import { enterLogCtx, httpLogger, logger } from './logger.js'
 import { LIBERA_CHAT_WEBSITE_URI, PORT } from './config.js'
 import { BaseError, NotFoundError, UnexpectedError } from './errors.js'
 import { engine } from 'express-handlebars'
+import helmet from 'helmet'
 
 import stripeWebhooksRoutes from './routes/stripe-webhooks.js'
 import spirisAuthRoutes from './routes/spiris-auth.js'
@@ -29,6 +30,10 @@ app.disable('x-powered-by')
 
 app.engine('handlebars', engine())
 app.set('view engine', 'handlebars')
+
+app.use(helmet({
+  crossOriginEmbedderPolicy: true,
+}))
 
 app.use(enterLogCtx)
 app.use(httpLogger)
