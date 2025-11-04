@@ -3,8 +3,9 @@ import './instrumentation.js'
 import 'dotenv/config'
 import express, { type RequestHandler, type ErrorRequestHandler } from 'express'
 import { enterLogCtx, httpLogger, logger } from './logger.js'
-import { PORT } from './config.js'
+import { LIBERA_CHAT_WEBSITE_URI, PORT } from './config.js'
 import { BaseError, NotFoundError, UnexpectedError } from './errors.js'
+import { engine } from 'express-handlebars'
 
 import stripeWebhooksRoutes from './routes/stripe-webhooks.js'
 import spirisAuthRoutes from './routes/spiris-auth.js'
@@ -25,6 +26,9 @@ const routes: RouteDefinition[] = [
 
 const app = express()
 app.disable('x-powered-by')
+
+app.engine('handlebars', engine())
+app.set('view engine', 'handlebars')
 
 app.use(enterLogCtx)
 app.use(httpLogger)
@@ -49,7 +53,11 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
 
   logger.error(error)
   if (!res.headersSent) {
-    res.status(error.statusCode).json(error)
+    if (req.accepts('html')) {
+      res.render('error', { error: error.message, LIBERA_CHAT_WEBSITE_URI })
+    } else {
+      res.status(error.statusCode).json(error.toJSON())
+    }
   }
 }
 app.use(errorHandler)
