@@ -15,7 +15,7 @@ const donationFormSchema = z.object({
 }))
 
 export default [{
-  method: 'get',
+  method: 'post',
   path: '/libera/donate',
   handler: [
     async (req, res) => {
