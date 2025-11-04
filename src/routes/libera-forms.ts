@@ -1,4 +1,4 @@
-import { stripe } from '../services/stripe.js'
+import { stripe, integeriseAmount, supportedCurrencies } from '../services/stripe.js'
 import { logger } from '../logger.js'
 import type { RouteDefinition } from '../main.js'
 import z from 'zod'
@@ -7,24 +7,20 @@ import { LIBERA_CHAT_WEBSITE_URI } from '../config.js'
 const donationFormSchema = z.object({
   email: z.email(),
   type: z.enum(['one-time', 'recurring']),
-  // TODO: full list
-  currency: z.enum(['sek']),
-  // TODO: allow decimal amounts?
-  amount: z.number().int().positive(),
-})
+  currency: z.enum(supportedCurrencies),
+  amount: z.coerce.number().positive(),
+}).transform(data => ({
+  ...data,
+  amount: integeriseAmount(data.amount, data.currency),
+}))
 
 export default [{
   method: 'get',
   path: '/libera/donate',
   handler: [
     async (req, res) => {
-      // const body = donationFormSchema.parse(req.body)
-      const body = donationFormSchema.parse({
-        email: 'swant@libera.chat',
-        currency: 'sek',
-        amount: 1000,
-        type: 'recurring',
-      })
+      const body = donationFormSchema.parse(req.body)
+      logger.info({ body }, 'parsed body')
 
       const existingCustomers = await stripe.customers.search({
         query: `email:'${body.email}'`,
@@ -46,7 +42,7 @@ export default [{
               tax_code: 'txcd_90000001', // Cash Donation
             },
             unit_amount: body.amount,
-            ...(body.type === 'recurring' ? { recurring: { interval: 'month' } } : {}),
+            ...(body.type === 'recurring' ? { recurring: { interval: 'day' } } : {}),
             tax_behavior: 'inclusive',
           },
           quantity: 1,
@@ -75,12 +71,14 @@ export default [{
             }),
         metadata,
         success_url: new URL('contributing/donate-success', LIBERA_CHAT_WEBSITE_URI).href,
-        cancel_url: new URL('contributing/donate-error', LIBERA_CHAT_WEBSITE_URI).href,
+        cancel_url: new URL('libera/error', `https://${req.get('host')}`).href,
         origin_context: 'web',
         submit_type: 'donate',
       })
+      logger.info({ checkoutSessionId: checkoutSession.id }, 'Checkout session created')
 
       if (checkoutSession.url == null) {
+        logger.error({ checkoutSessionId: checkoutSession.id }, 'Checkout session has no URL')
         res.redirect(303, new URL('contributing/donate-error', LIBERA_CHAT_WEBSITE_URI).href)
         return
       }
