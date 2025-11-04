@@ -13,7 +13,7 @@ const envSchema = z.object({
   SPIRIS_API_BASE_URI: z.url().default('https://eaccountingapi.vismaonline.com/'),
   SPIRIS_CLIENT_ID: z.string(),
   SPIRIS_CLIENT_SECRET: z.string(),
-  SPIRIS_DEV_REDIRECT_URI: z.string().optional(),
+  SPIRIS_DEV_REDIRECT_URI: z.url().optional(),
   SPIRIS_LIBERAPAY_PROJECT_NUMBER: z.string().default('1'),
   SPIRIS_STRIPE_ONETIME_PROJECT_NUMBER: z.string().default('3'),
   SPIRIS_STRIPE_RECURRING_PROJECT_NUMBER: z.string().default('4'),
