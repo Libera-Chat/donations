@@ -116,29 +116,34 @@ async function handleChargeEvent (event: Stripe.ChargeSucceededEvent | Stripe.Ch
       return
     }
 
-    const donationType = determineDonationType(event.data.object)
+    // Re-fetch in an attempt to avoid race conditions, especially if a webhook
+    // is retried.
+    const charge = await stripe.charges.retrieve(event.data.object.id, {
+      expand: ['balance_transaction'],
+    })
+    const donationType = determineDonationType(charge)
     if (donationType == null) {
       logger.warn('Charge does not come from Liberapay or internal Stripe checkout')
       return
     }
-    if ('spiris_voucher_id' in event.data.object.metadata) {
+    if ('spiris_voucher_id' in charge.metadata) {
       logger.warn('Charge already has a voucher number')
       return
     }
 
-    if (event.data.object.balance_transaction == null) {
+    if (charge.balance_transaction == null) {
       logger.warn('Charge does not have a balance transaction')
       return
     }
 
     logger.info({
-      balanceTransactionId: typeof event.data.object.balance_transaction === 'string'
-        ? event.data.object.balance_transaction
-        : event.data.object.balance_transaction.id,
+      balanceTransactionId: typeof charge.balance_transaction === 'string'
+        ? charge.balance_transaction
+        : charge.balance_transaction.id,
     }, 'Retrieving balance transaction')
-    const transaction = typeof event.data.object.balance_transaction === 'string'
-      ? await stripe.balanceTransactions.retrieve(event.data.object.balance_transaction)
-      : event.data.object.balance_transaction
+    const transaction = typeof charge.balance_transaction === 'string'
+      ? await stripe.balanceTransactions.retrieve(charge.balance_transaction)
+      : charge.balance_transaction
 
     if (transaction.currency !== 'sek') {
       logger.error('Balance transaction is not in SEK')
@@ -148,25 +153,25 @@ async function handleChargeEvent (event: Stripe.ChargeSucceededEvent | Stripe.Ch
     let attachmentId: string | undefined
     let receiptInvoiceNumber: string | undefined
     try {
-      if (typeof event.data.object.metadata.invoice === 'string') {
-        const invoice = await stripe.invoices.retrieve(event.data.object.metadata.invoice)
+      if (typeof charge.metadata.invoice === 'string') {
+        const invoice = await stripe.invoices.retrieve(charge.metadata.invoice)
         const pdfBuffer = await getInvoicePdf(invoice)
         logger.info({ pdfSize: pdfBuffer.length }, 'Invoice PDF retrieved successfully')
 
         receiptInvoiceNumber = invoice.number ?? undefined
 
         attachmentId = await createPdfAttachment(pdfBuffer, `stripe-invoice-${receiptInvoiceNumber ?? invoice.id}.pdf`)
-      } else if (event.data.object.receipt_url != null) {
-        const pdfBuffer = await htmlReceiptToPdf(event.data.object.receipt_url)
+      } else if (charge.receipt_url != null) {
+        const pdfBuffer = await htmlReceiptToPdf(charge.receipt_url)
         logger.info({ pdfSize: pdfBuffer.length }, 'Receipt PDF generated successfully')
 
-        let receiptInvoiceNumber = event.data.object.receipt_number
+        let receiptInvoiceNumber = charge.receipt_number
         if (receiptInvoiceNumber == null) {
-          const charge = await stripe.charges.retrieve(event.data.object.id)
+          const charge = await stripe.charges.retrieve(charge.id)
           receiptInvoiceNumber = charge.receipt_number
         }
 
-        attachmentId = await createPdfAttachment(pdfBuffer, `stripe-receipt-${receiptInvoiceNumber ?? event.data.object.id}.pdf`)
+        attachmentId = await createPdfAttachment(pdfBuffer, `stripe-receipt-${receiptInvoiceNumber ?? charge.id}.pdf`)
       }
     } catch (err) {
       logger.error({ err }, 'Failed to create PDF attachment')
@@ -174,7 +179,7 @@ async function handleChargeEvent (event: Stripe.ChargeSucceededEvent | Stripe.Ch
 
     const voucher = await createVoucher(
       {
-        date: new Date(event.data.object.created * 1000),
+        date: new Date(charge.created * 1000),
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         description: `${descriptionByDonationType[donationType] ?? 'Donation'} ${receiptInvoiceNumber ?? ''}`.trim(),
       },
@@ -202,7 +207,7 @@ async function handleChargeEvent (event: Stripe.ChargeSucceededEvent | Stripe.Ch
     )
     logger.info({ voucher }, 'Voucher created successfully')
 
-    await stripe.charges.update(event.data.object.id, {
+    await stripe.charges.update(charge.id, {
       metadata: {
         spiris_voucher_id: voucher.NumberAndNumberSeries,
       },
@@ -259,30 +264,32 @@ async function handlePayout (event: Stripe.PayoutPaidEvent) {
     addMessagingAttributes(event)
     logger.info({ event }, 'Event payload')
 
-    if (event.data.object.metadata != null && 'spiris_voucher_id' in event.data.object.metadata) {
+    const payout = await stripe.payouts.retrieve(event.data.object.id)
+
+    if (payout.metadata != null && 'spiris_voucher_id' in payout.metadata) {
       logger.warn('Payout already has a voucher number')
       return
     }
 
-    if (event.data.object.currency !== 'sek') {
+    if (payout.currency !== 'sek') {
       logger.warn('Payout is not in SEK')
       return
     }
 
     const voucher = await createVoucher(
       {
-        date: new Date(event.data.object.arrival_date * 1000),
+        date: new Date(payout.arrival_date * 1000),
         description: 'Utbetalning Stripe',
       },
       [
         {
           account: 1580,
-          amount: event.data.object.amount / 100,
+          amount: payout.amount / 100,
           type: 'credit',
         },
         {
           account: 1930,
-          amount: event.data.object.amount / 100,
+          amount: payout.amount / 100,
           type: 'credit',
         },
       ],
@@ -291,9 +298,9 @@ async function handlePayout (event: Stripe.PayoutPaidEvent) {
     )
     logger.info({ voucher }, 'Voucher created successfully')
 
-    await stripe.payouts.update(event.data.object.id, {
+    await stripe.payouts.update(payout.id, {
       metadata: {
-        ...(event.data.object.metadata ?? {}),
+        ...(payout.metadata ?? {}),
         spiris_voucher_id: voucher.NumberAndNumberSeries,
       },
     })
