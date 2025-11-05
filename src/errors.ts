@@ -57,6 +57,12 @@ export class CollisionError extends BaseError {
     super(messageOrError, options)
   }
 }
+export class RatelimitError extends BaseError {
+  statusCode = 429
+  constructor (messageOrError: string | Error, options: ErrorOptions = {}) {
+    super(messageOrError, options)
+  }
+}
 
 export class UnexpectedError extends BaseError {
   statusCode = 500

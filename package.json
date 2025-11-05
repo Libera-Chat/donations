@@ -7,9 +7,10 @@
   "scripts": {
     "build": "tsc -b",
     "dev": "tsx watch src/main.ts | pino-pretty",
-    "lint": "eslint . --ignore-path .gitignore",
+    "lint": "eslint",
     "lint:fix": "npm run lint -- --fix",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "NODE_ENV=test tsx --test"
   },
   "author": "Libera Chat (https://libera.chat)",
   "contributors": [
@@ -23,23 +24,23 @@
     "@opentelemetry/sdk-metrics": "^2.2.0",
     "@opentelemetry/sdk-node": "^0.207.0",
     "@opentelemetry/sdk-trace-node": "^2.2.0",
-    "body-parser": "^2.2.0",
-    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "express-handlebars": "^8.0.3",
+    "helmet": "^8.1.0",
     "jose": "^6.1.0",
     "pino": "^10.1.0",
     "pino-http": "^11.0.0",
-    "puppeteer": "^24.27.0",
-    "stripe": "^19.1.0",
+    "puppeteer": "^24.28.0",
+    "stripe": "^19.2.0",
     "undici": "^7.16.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@tsconfig/node24": "^24.0.1",
+    "@tsconfig/node20": "^20.1.6",
     "@types/express": "^5.0.5",
-    "@types/node": "^24.9.2",
-    "eslint": "^9.38.0",
+    "@types/node": "^20.19.24",
+    "eslint": "^9.39.1",
     "neostandard": "^0.12.2",
     "pino-pretty": "^13.1.2",
     "tsx": "^4.20.6",
