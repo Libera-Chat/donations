@@ -3,6 +3,8 @@ import { z } from 'zod'
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(44300),
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  LISTEN_PATH: z.string().optional().transform(path => path || undefined),
   LOG_LEVEL: z.string().default('trace'),
   DATA_DIRECTORY: z.string().default(path.join(process.cwd(), 'data')),
   ENABLE_DIRECT_DONATIONS: z.stringbool().default(true),
@@ -25,6 +27,7 @@ const env = process.env.NODE_ENV === 'test' ? process.env as unknown as z.infer<
 
 export const {
   PORT,
+  LISTEN_PATH,
   LOG_LEVEL,
   DATA_DIRECTORY,
   ENABLE_DIRECT_DONATIONS,

@@ -3,7 +3,7 @@ import './instrumentation.js'
 import 'dotenv/config'
 import express, { type RequestHandler, type ErrorRequestHandler } from 'express'
 import { enterLogCtx, httpLogger, logger } from './logger.js'
-import { LIBERA_CHAT_WEBSITE_URI, PORT } from './config.js'
+import { LIBERA_CHAT_WEBSITE_URI, LISTEN_PATH, PORT } from './config.js'
 import { BaseError, NotFoundError, RatelimitError, UnexpectedError, UpstreamError, ValidationError } from './errors.js'
 import { engine } from 'express-handlebars'
 import helmet from 'helmet'
@@ -146,8 +146,11 @@ const errorHandler: ErrorRequestHandler = (err: BaseError, req, res, next) => {
 }
 app.use(errorHandler)
 
-const server = app.listen(PORT, () => {
-  logger.info({ port: PORT }, 'Server started')
+const server = app.listen(LISTEN_PATH ?? PORT, () => {
+  logger.info({
+    listenPath: LISTEN_PATH,
+    port: LISTEN_PATH != null ? undefined : PORT,
+  }, 'Server started')
 })
 
 // Graceful shutdown
