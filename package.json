@@ -37,7 +37,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@tsconfig/node24": "^24.0.1",
+    "@tsconfig/node20": "^20.1.6",
     "@types/express": "^5.0.5",
     "@types/node": "^20.19.24",
     "eslint": "^9.39.1",
