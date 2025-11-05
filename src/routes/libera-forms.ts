@@ -1,4 +1,4 @@
-import { stripe, integeriseAmount, supportedCurrencies } from '../services/stripe.js'
+import { getStripe, integeriseAmount, supportedCurrencies } from '../services/stripe.js'
 import { logger } from '../logger.js'
 import type { RouteDefinition } from '../main.js'
 import z from 'zod'
@@ -23,6 +23,8 @@ export default [{
         res.redirect(303, new URL('contributing/donate', LIBERA_CHAT_WEBSITE_URI).href)
         return
       }
+
+      const stripe = getStripe()
 
       const body = donationFormSchema.parse(req.body)
       logger.info({ body }, 'parsed body')
