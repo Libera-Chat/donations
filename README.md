@@ -25,3 +25,5 @@ you'll need a spiris client_id and client secret, and a stripe restricted key
 You can get the webhooks either by using something like tailscale funnel, or
 the stripe CLI's event forwarding thing. see `src/config.ts` for a list of all
 available config env variables.
+
+Spiris documentation can be found here: <https://developer.vismaonline.com/docs/lets-get-started>
