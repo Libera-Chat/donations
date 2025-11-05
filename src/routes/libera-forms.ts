@@ -2,7 +2,7 @@ import { stripe, integeriseAmount, supportedCurrencies } from '../services/strip
 import { logger } from '../logger.js'
 import type { RouteDefinition } from '../main.js'
 import z from 'zod'
-import { LIBERA_CHAT_WEBSITE_URI } from '../config.js'
+import { ENABLE_DIRECT_DONATIONS, LIBERA_CHAT_WEBSITE_URI } from '../config.js'
 
 const donationFormSchema = z.object({
   email: z.email(),
@@ -19,6 +19,11 @@ export default [{
   path: '/libera/donate',
   handler: [
     async (req, res) => {
+      if (!ENABLE_DIRECT_DONATIONS) {
+        res.redirect(303, new URL('contributing/donate', LIBERA_CHAT_WEBSITE_URI).href)
+        return
+      }
+
       const body = donationFormSchema.parse(req.body)
       logger.info({ body }, 'parsed body')
 

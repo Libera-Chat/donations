@@ -1,12 +1,16 @@
 import Stripe from 'stripe'
 import { STRIPE_SECRET_KEY } from '../config.js'
 
-export const stripe = new Stripe(STRIPE_SECRET_KEY, {
-  apiVersion: '2025-10-29.clover',
-})
+let stripe: Stripe | undefined
+export function getStripe () {
+  stripe ??= new Stripe(STRIPE_SECRET_KEY, {
+    apiVersion: '2025-10-29.clover',
+  })
+  return stripe
+}
 
 // See https://docs.stripe.com/currencies
-const currencyMultiplyFactors: Record<string, number> = {
+export const currencyMultiplyFactors: Record<string, number> = {
   bif: 1,
   clp: 1,
   djf: 1,

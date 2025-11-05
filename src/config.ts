@@ -5,6 +5,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(44300),
   LOG_LEVEL: z.string().default('trace'),
   DATA_DIRECTORY: z.string().default(path.join(process.cwd(), 'data')),
+  ENABLE_DIRECT_DONATIONS: z.stringbool().default(true),
 
   STRIPE_SECRET_KEY: z.string(),
   STRIPE_WEBHOOK_SECRET: z.string(),
@@ -20,12 +21,13 @@ const envSchema = z.object({
 
   LIBERA_CHAT_WEBSITE_URI: z.url().default('https://libera.chat'),
 })
-const env = envSchema.parse(process.env)
+const env = process.env.NODE_ENV === 'test' ? process.env as unknown as z.infer<typeof envSchema> : envSchema.parse(process.env)
 
 export const {
   PORT,
   LOG_LEVEL,
   DATA_DIRECTORY,
+  ENABLE_DIRECT_DONATIONS,
 
   STRIPE_SECRET_KEY,
   STRIPE_WEBHOOK_SECRET,

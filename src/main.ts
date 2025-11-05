@@ -28,6 +28,7 @@ const routes: RouteDefinition[] = [
 const app = express()
 app.disable('x-powered-by')
 
+// eslint-disable-next-line @typescript-eslint/no-misused-promises
 app.engine('handlebars', engine())
 app.set('view engine', 'handlebars')
 

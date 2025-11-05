@@ -1,6 +1,6 @@
 import express from 'express'
 import Stripe from 'stripe'
-import { stripe } from '../services/stripe.js'
+import { getStripe } from '../services/stripe.js'
 import { SPIRIS_LIBERAPAY_PROJECT_NUMBER, SPIRIS_STRIPE_ONETIME_PROJECT_NUMBER, SPIRIS_STRIPE_RECURRING_PROJECT_NUMBER, STRIPE_WEBHOOK_SECRET } from '../config.js'
 import { UpstreamError, ValidationError } from '../errors.js'
 import { logger, setAttribute } from '../logger.js'
@@ -111,6 +111,8 @@ async function handleChargeEvent (event: Stripe.ChargeSucceededEvent | Stripe.Ch
     addMessagingAttributes(event)
     logger.info({ event }, 'Event payload')
 
+    const stripe = getStripe()
+
     if (!event.data.object.paid) {
       logger.warn('Charge is not paid')
       return
@@ -165,11 +167,7 @@ async function handleChargeEvent (event: Stripe.ChargeSucceededEvent | Stripe.Ch
         const pdfBuffer = await htmlReceiptToPdf(charge.receipt_url)
         logger.info({ pdfSize: pdfBuffer.length }, 'Receipt PDF generated successfully')
 
-        let receiptInvoiceNumber = charge.receipt_number
-        if (receiptInvoiceNumber == null) {
-          const charge = await stripe.charges.retrieve(charge.id)
-          receiptInvoiceNumber = charge.receipt_number
-        }
+        receiptInvoiceNumber = charge.receipt_number ?? undefined
 
         attachmentId = await createPdfAttachment(pdfBuffer, `stripe-receipt-${receiptInvoiceNumber ?? charge.id}.pdf`)
       }
@@ -221,6 +219,8 @@ async function handleInvoiceEvent (event: Stripe.InvoicePaymentPaidEvent): Promi
     addMessagingAttributes(event)
     logger.info({ event }, 'Event payload')
 
+    const stripe = getStripe()
+
     const invoice = typeof event.data.object.invoice === 'string'
       ? await stripe.invoices.retrieve(event.data.object.invoice)
       : event.data.object.invoice
@@ -263,6 +263,8 @@ async function handlePayout (event: Stripe.PayoutPaidEvent) {
   await tracer.startActiveSpan('app.handlePayout', async () => {
     addMessagingAttributes(event)
     logger.info({ event }, 'Event payload')
+
+    const stripe = getStripe()
 
     const payout = await stripe.payouts.retrieve(event.data.object.id)
 
