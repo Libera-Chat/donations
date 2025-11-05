@@ -50,6 +50,12 @@ for (const route of routes) {
   ])
 }
 
+// 404 Handlers
+app.get('/', (req, res) => {
+  if (req.accepts('html')) {
+    res.redirect(303, new URL('contributing/donate', LIBERA_CHAT_WEBSITE_URI).href)
+  }
+})
 app.use((req) => {
   throw new NotFoundError('Route not found', { publicCtx: { path: req.path, method: req.method } })
 })
