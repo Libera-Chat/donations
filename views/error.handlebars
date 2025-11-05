@@ -1,14 +1,16 @@
 <h1>Libera Chat Donations - Something went wrong</h1>
 
-<p>
-  Opps something went wrong. Please try again later.
-</p>
+<p>{{message}}</p>
 
 <p>
-  If the problem persists, please contact <a href="mailto:support@libera.chat">support@libera.chat</a>.
+  If the problem persists, please contact
+  <a href="mailto:support@libera.chat">support@libera.chat</a> {{#if traceId}}and include the
+  request ID: <code>{{traceId}}</code>{{/if}}.
 </p>
 
-<p>Error received from server:</p>
-<pre><code>{{error}}</code></pre>
+{{#if publicCtx}}
+  <p>Additional context:</p>
+  <pre><code>{{publicCtx}}</code></pre>
+{{/if}}
 
 <a href="{{LIBERA_CHAT_WEBSITE_URI}}/contributing/donate">Go back to the donation page</a>

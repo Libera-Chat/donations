@@ -4,13 +4,17 @@ import 'dotenv/config'
 import express, { type RequestHandler, type ErrorRequestHandler } from 'express'
 import { enterLogCtx, httpLogger, logger } from './logger.js'
 import { LIBERA_CHAT_WEBSITE_URI, PORT } from './config.js'
-import { BaseError, NotFoundError, UnexpectedError } from './errors.js'
+import { BaseError, NotFoundError, RatelimitError, UnexpectedError, UpstreamError, ValidationError } from './errors.js'
 import { engine } from 'express-handlebars'
 import helmet from 'helmet'
+import { trace } from '@opentelemetry/api'
+import { $ZodError } from 'zod/v4/core'
+import z from 'zod'
 
 import stripeWebhooksRoutes from './routes/stripe-webhooks.js'
 import spirisAuthRoutes from './routes/spiris-auth.js'
 import liberaDonateRoutes from './routes/libera-forms.js'
+import Stripe from 'stripe'
 
 export interface RouteDefinition {
   method: 'all' | 'get' | 'post' | 'put' | 'delete' | 'patch' | 'options' | 'head'
@@ -49,20 +53,88 @@ for (const route of routes) {
 app.use((req) => {
   throw new NotFoundError('Route not found', { publicCtx: { path: req.path, method: req.method } })
 })
-const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
-  let error: BaseError = err as BaseError
-  if (!(err instanceof BaseError)) {
-    error = new UnexpectedError('An unexpected error occurred', {
-      cause: err,
-    })
-  }
 
-  logger.error(error)
+const errorFormatter: ErrorRequestHandler = (err, req, res, next) => {
+  if (err instanceof BaseError) {
+    next(err)
+  } else if (err instanceof $ZodError) {
+    const msg = z.prettifyError(err)
+    next(new ValidationError(msg, {
+      cause: err,
+    }))
+  } else if (err instanceof Stripe.errors.StripeCardError) {
+    next(new ValidationError(err.message, {
+      cause: err,
+      publicCtx: {
+        decline_code: err.decline_code,
+        code: err.code,
+        param: err.param,
+      },
+      privateCtx: {
+        stripeReqId: err.requestId,
+        stripeErrorType: err.type,
+        stripeErrorCode: err.code,
+      },
+    }))
+  } else if (err instanceof Stripe.errors.StripeRateLimitError) {
+    next(new RatelimitError('Too many requests received either from you or in total, please try again later', {
+      cause: err,
+      privateCtx: {
+        stripeReqId: err.requestId,
+        stripeErrorType: err.type,
+        stripeErrorCode: err.code,
+      },
+    }))
+  } else if (err instanceof Stripe.errors.StripeInvalidRequestError) {
+    next(new ValidationError(err.message, {
+      cause: err,
+      publicCtx: {
+        code: err.code,
+        param: err.param,
+      },
+      privateCtx: {
+        stripeReqId: err.requestId,
+        stripeErrorType: err.type,
+        stripeErrorCode: err.code,
+      },
+    }))
+  } else if (err instanceof Stripe.errors.StripeError) {
+    next(new UpstreamError('An error was received from stripe, please try again later', {
+      cause: err,
+      publicCtx: {
+        param: err.param,
+      },
+      privateCtx: {
+        stripeReqId: err.requestId,
+        stripeErrorType: err.type,
+        stripeErrorCode: err.code,
+      },
+    }))
+  } else {
+    next(new UnexpectedError('An unexpected error occurred', {
+      cause: err,
+    }))
+  }
+}
+app.use(errorFormatter)
+
+const errorHandler: ErrorRequestHandler = (err: BaseError, req, res, next) => {
+  logger.error(err)
   if (!res.headersSent) {
     if (req.accepts('html')) {
-      res.render('error', { error: error.message, LIBERA_CHAT_WEBSITE_URI })
+      const traceId = trace.getActiveSpan()?.spanContext().traceId
+
+      let publicCtx = err.publicCtx ? JSON.stringify(err.publicCtx, null, 2) : undefined
+      if (publicCtx === '{}') publicCtx = undefined
+
+      res.status(err.statusCode).render('error', {
+        message: err.message,
+        publicCtx,
+        traceId,
+        LIBERA_CHAT_WEBSITE_URI,
+      })
     } else {
-      res.status(error.statusCode).json(error.toJSON())
+      res.status(err.statusCode).json(err.toJSON())
     }
   }
 }
