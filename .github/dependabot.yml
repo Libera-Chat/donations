@@ -11,7 +11,7 @@ updates:
       interval: "monthly"
     groups:
       github-actions:
-      applies-to: version-updates
+        applies-to: version-updates
         update-types:
           - "major"
           - "minor"
