@@ -9,6 +9,13 @@ updates:
     directory: "/" 
     schedule:
       interval: "monthly"
+    groups:
+      github-actions:
+      applies-to: version-updates
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
