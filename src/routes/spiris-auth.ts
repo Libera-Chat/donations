@@ -8,8 +8,6 @@ export default [
     method: 'get',
     path: '/spiris/authenticate',
     handler: async (req, res) => {
-      // TODO: only allow certain users to authenticate
-
       res.redirect(307, (await getAuthenticationRedirectUrl(SPIRIS_DEV_REDIRECT_URI ?? `https://${req.get('host')}/spiris/auth-callback`)).href)
     },
   },
