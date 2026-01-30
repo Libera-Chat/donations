@@ -33,7 +33,7 @@
     "pino-http": "^11.0.0",
     "puppeteer": "^24.29.1",
     "stripe": "^20.1.0",
-    "undici": "^7.16.0",
+    "undici": "^7.18.2",
     "zod": "^4.1.12"
   },
   "devDependencies": {
