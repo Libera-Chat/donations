@@ -9,7 +9,7 @@
     "dev": "tsx watch src/main.ts | pino-pretty",
     "lint": "eslint",
     "lint:fix": "npm run lint -- --fix",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b --noEmit",
     "test": "NODE_ENV=test tsx --test"
   },
   "author": "Libera Chat (https://libera.chat)",
