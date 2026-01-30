@@ -54,12 +54,15 @@ export default [{
           },
           quantity: 1,
         }],
-        ...(existingCustomers.data.length > 0 ? { customer: existingCustomers.data[0].id } : {}),
+        ...(
+          existingCustomers.data.length === 0
+            ? { customer_email: body.email }
+            : {
+              customer: existingCustomers.data[0].id,
+              customer_update: { address: 'auto', name: 'auto' },
+            }
+        ),
         ...(existingCustomers.data.length === 0 && body.type === 'one-time' ? { customer_creation: 'always' } : {}),
-        customer_update: {
-          address: 'auto',
-          name: 'auto',
-        },
         automatic_tax: {
           enabled: false,
         },
