@@ -58,9 +58,9 @@ export default [{
           existingCustomers.data.length === 0
             ? { customer_email: body.email }
             : {
-              customer: existingCustomers.data[0].id,
-              customer_update: { address: 'auto', name: 'auto' },
-            }
+                customer: existingCustomers.data[0].id,
+                customer_update: { address: 'auto', name: 'auto' },
+              }
         ),
         ...(existingCustomers.data.length === 0 && body.type === 'one-time' ? { customer_creation: 'always' } : {}),
         automatic_tax: {
