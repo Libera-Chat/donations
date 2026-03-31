@@ -4,7 +4,7 @@ import { STRIPE_SECRET_KEY } from '../config.js'
 let stripe: Stripe | undefined
 export function getStripe () {
   stripe ??= new Stripe(STRIPE_SECRET_KEY, {
-    apiVersion: '2026-01-28.clover',
+    apiVersion: '2026-03-25.dahlia',
   })
   return stripe
 }

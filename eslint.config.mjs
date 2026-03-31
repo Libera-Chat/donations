@@ -1,6 +1,7 @@
 import neostandard, { resolveIgnoresFromGitignore } from 'neostandard'
 import eslint from '@eslint/js'
 import tseslint from 'typescript-eslint'
+import { cwd } from 'node:process'
 
 export default [
   ...neostandard({
@@ -18,7 +19,8 @@ export default [
         projectService: {
           allowDefaultProject: ['*.mjs'],
         },
-        tsconfigRootDir: process.cwd(),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+        tsconfigRootDir: cwd(),
       },
     },
   },
