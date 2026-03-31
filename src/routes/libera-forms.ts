@@ -3,6 +3,7 @@ import { logger } from '../logger.js'
 import type { RouteDefinition } from '../main.js'
 import z from 'zod'
 import { ENABLE_DIRECT_DONATIONS, LIBERA_CHAT_WEBSITE_URI } from '../config.js'
+import { rateLimit } from 'express-rate-limit'
 
 const donationFormSchema = z.object({
   email: z.email(),
@@ -14,10 +15,38 @@ const donationFormSchema = z.object({
   amount: integeriseAmount(data.amount, data.currency),
 }))
 
+const emailRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 5,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  requestPropertyName: 'rateLimitEmail',
+  message: 'Too many donation attempts, please try again after an hour',
+  keyGenerator: (req) => {
+    return donationFormSchema.parse(req.body).email
+  },
+})
+
 export default [{
   method: 'post',
   path: '/libera/donate',
   handler: [
+    rateLimit({
+      windowMs: 60 * 60 * 1000, // 1 hour
+      limit: 10,
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      requestPropertyName: 'rateLimitIp',
+      message: 'Too many donation attempts, please try again after an hour',
+    }),
+    (req, res, next) => {
+      const body = donationFormSchema.safeParse(req.body)
+      if (body.success) {
+        emailRateLimit(req, res, next)
+      } else {
+        next()
+      }
+    },
     async (req, res) => {
       if (!ENABLE_DIRECT_DONATIONS) {
         res.redirect(303, new URL('contributing/donate', LIBERA_CHAT_WEBSITE_URI).href)
