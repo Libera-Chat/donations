@@ -35,6 +35,8 @@ app.disable('x-powered-by')
 // eslint-disable-next-line @typescript-eslint/no-misused-promises
 app.engine('handlebars', engine())
 app.set('view engine', 'handlebars')
+// We listen on a socket, so we don't see an IP of the proxy
+app.set('trust proxy', true)
 
 app.use(helmet({
   crossOriginEmbedderPolicy: true,
